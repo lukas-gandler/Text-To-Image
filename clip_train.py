@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 
-from utils import set_seed
+from utils import set_seed, save_model
 from dataloading import load_MNIST
 from dataloading.CharacterEncoder import CharacterEncoder
 
@@ -14,6 +14,7 @@ from models.image_encoders import SimpleImageEncoder
 from models.text_encoder import LSTMTextEncoder
 
 SEED = 42
+SAVE_PATH = 'mnist_clip.pth'
 
 def main() -> None:
     set_seed(SEED)
@@ -30,8 +31,10 @@ def main() -> None:
 
     epochs = 5
     clip_loss = ClipLoss().to(device)
-    optimizer = torch.optim.Adam(list(clip_model.parameters()) + list(clip_loss.parameters()), lr=3e-4)
+    optimizer = torch.optim.AdamW(list(clip_model.parameters()) + list(clip_loss.parameters()), lr=3e-4)
+
     train(clip_model=clip_model, num_epochs=epochs, optimizer=optimizer, clip_loss=clip_loss, train_loader=train_loader, validation_loader=validation_loader, device=device)
+    save_model(clip_model, path=SAVE_PATH)
 
 
 def train(clip_model:nn.Module, num_epochs:int, optimizer:torch.optim.Optimizer, clip_loss: nn.Module,

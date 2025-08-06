@@ -1,1 +1,2 @@
-from .MNIST_dataset import *
+from .MNIST_dataset import load_MNIST
+from .CharacterEncoder import CharacterEncoder
