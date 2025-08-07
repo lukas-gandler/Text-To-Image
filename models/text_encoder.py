@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 class LSTMTextEncoder(nn.Module):
-    def __init__(self, alphabet_size:int, embedding_dim:int=8, output_dim=32) -> None:
+    def __init__(self, alphabet_size:int, embedding_dim:int=8, output_dim:int=32) -> None:
         super(LSTMTextEncoder, self).__init__()
 
         self.output_dim = output_dim

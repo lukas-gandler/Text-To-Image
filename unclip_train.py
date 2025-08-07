@@ -36,7 +36,7 @@ def main() -> None:
     optimizer = torch.optim.AdamW(ddpm.parameters(), lr=1e-3)
     criterion = nn.MSELoss()
 
-    ddpm = train(ddpm_model=ddpm, clip_model=clip_model, num_epochs=num_epochs, optimizer=optimizer, criterion=criterion, guidance_scale=3.0, train_loader=train_loader, device=device)
+    ddpm = train(ddpm_model=ddpm, clip_model=clip_model, num_epochs=num_epochs, optimizer=optimizer, criterion=criterion, train_loader=train_loader, device=device)
     save_model(ddpm, DIFFUSION_MODEL_PATH)
 
     num_samples = 64
@@ -46,7 +46,7 @@ def main() -> None:
     generation = ddpm.sample_new_image(num_samples=num_samples, clip_embedding=test_prompt_clip_embedding)
     plot_image_batch(generation)
 
-def train(ddpm_model: nn.Module, clip_model: nn.Module, num_epochs:int, optimizer: torch.optim.Optimizer, criterion: nn.Module, guidance_scale:float, train_loader: DataLoader, device: torch.device) -> nn.Module:
+def train(ddpm_model: nn.Module, clip_model: nn.Module, num_epochs:int, optimizer: torch.optim.Optimizer, criterion: nn.Module, train_loader: DataLoader, device: torch.device) -> nn.Module:
     ddpm_model.train()
     train_losses = []
 

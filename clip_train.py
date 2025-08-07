@@ -23,7 +23,7 @@ def main() -> None:
     print(f'Using device: {device}')
 
     description_encoder = CharacterEncoder('abcdefghijklmnopqrstuvwxyz1234567890 .!?')
-    train_loader, validation_loader = load_MNIST(encoder=description_encoder, batch_size=128)
+    train_loader, validation_loader = load_MNIST(encoder=description_encoder, batch_size=128, num_workers=4)
 
     cnn = SimpleImageEncoder()
     lstm = LSTMTextEncoder(alphabet_size=description_encoder.alphabet_size)

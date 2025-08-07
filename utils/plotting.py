@@ -23,7 +23,7 @@ def plot_image_batch(images: torch.Tensor, n_row:int=8, padding:int=2, normalize
 @torch.no_grad()
 def plot_class_embedding_directions(classes, clip_model, description_encoder, device):
     # Tokenize and pad class descriptions, move to device
-    classes_tokenized = pad_sequence([description_encoder(c) for c in classes], batch_first=True, padding_value=description_encoder.PAD_TOKEN).to(device)
+    classes_tokenized = torch.stack([description_encoder(c) for c in classes]).to(device)
 
     # Get class text embeddings [num_classes, 2]
     class_embeddings = clip_model.get_text_embeddings(classes_tokenized).cpu()
@@ -51,11 +51,7 @@ def plot_class_embedding_directions(classes, clip_model, description_encoder, de
 @torch.no_grad()
 def show_clip_image_classification(images, classes, clip_model, description_encoder, device):
     # Tokenize and pad class descriptions, then move to device
-    classes_tokenized = pad_sequence(
-        [description_encoder(c) for c in classes],
-        batch_first=True,
-        padding_value=description_encoder.PAD_TOKEN
-    ).to(device)
+    classes_tokenized = torch.stack([description_encoder(c) for c in classes]).to(device)
 
     # Get class text embeddings
     class_embeddings = clip_model.get_text_embeddings(classes_tokenized)  # [num_classes, embed_dim]

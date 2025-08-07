@@ -1,6 +1,8 @@
 import torch
+import torch.nn.functional as F
 
 from typing import Tuple, Optional, Callable
+
 from torch.utils.data import DataLoader, Dataset
 from torch.nn.utils.rnn import pad_sequence
 from torchvision.datasets import MNIST
@@ -10,25 +12,12 @@ from torchvision.transforms import transforms
 
 def load_MNIST(encoder:Optional[Callable]=None, batch_size:int=64, num_workers:int=0, data_root:str='./data', download:bool=True) -> Tuple[DataLoader, DataLoader]:
     train_dataset = MNISTDataset(string_encoder=encoder, train_fold=True, data_dir=data_root, download=download)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True, collate_fn=get_collate_fn(encoder))
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
 
     validation_dataset = MNISTDataset(string_encoder=encoder, train_fold=False, data_dir=data_root, download=download)
-    validation_loader = DataLoader(validation_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False, collate_fn=get_collate_fn(encoder))
+    validation_loader = DataLoader(validation_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
     return train_loader, validation_loader
-
-def get_collate_fn(encoder:Optional[Callable]=None) -> Callable:
-    def collate_fn(batch):
-        if encoder is not None:
-            images, tokens = zip(*batch)
-
-            images = torch.stack(images, dim=0)
-            padded_tokens = pad_sequence(tokens, batch_first=True, padding_value=encoder.PAD_TOKEN)
-            return images, padded_tokens
-        else:
-            return batch
-
-    return collate_fn
 
 
 class MNISTDataset(Dataset):
@@ -52,6 +41,10 @@ class MNISTDataset(Dataset):
             9: 'nine',
         }
 
+        # Have all the description of the same length
+        self.sequence_length = len(max(self.description_dictionary.values(), key=len))
+
+
     def __len__(self) -> int:
         return len(self.dataset)
 
@@ -60,7 +53,7 @@ class MNISTDataset(Dataset):
 
         if self.encoder:
             string_label = self.description_dictionary[label]
-            string_encoding = self.encoder(string_label)
-            return image, string_encoding
+            tokenized_string = self.encoder(string_label)
+            return image, tokenized_string
         else:
             return image, label
