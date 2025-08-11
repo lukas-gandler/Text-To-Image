@@ -4,7 +4,7 @@ The goal of this project is to get a better understanding of how text-to-image g
 [Guest video of WelchLabsVideo on the channel of 3Blue1Brown](https://www.youtube.com/watch?v=iv-5mZ_9CPY). This project 
 is working with the MNIST dataset in order to keep the dataset simple and not overcomplicate things. 
 
-[demo animation](res/animation.gif)
+![demo animation](res/animation.gif)
 
 ## Project Structure
 <pre>
