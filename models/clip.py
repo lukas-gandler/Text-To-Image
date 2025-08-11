@@ -7,6 +7,13 @@ import torch.nn.functional as F
 
 class ClipModel(nn.Module):
     def __init__(self, image_encoder: nn.Module, text_encoder: nn.Module, clip_embedding_dim=16):
+        """
+        Torch module for the clip model. Takes an image encoder and a text encoder produces embeddings of the specified embedding dimension.
+        :param image_encoder: The image encoder.
+        :param text_encoder: The text encoder.
+        :param clip_embedding_dim: The embedding dimension of the clip model.
+        """
+
         super(ClipModel, self).__init__()
 
         self.image_encoder = image_encoder
@@ -19,6 +26,13 @@ class ClipModel(nn.Module):
         self.text_projection  = nn.Linear(in_features=text_encoder.output_dim,  out_features=self.clip_embedding_dim)
 
     def forward(self, image: torch.Tensor, text_encoding: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Passes the image through the image encoder and the tokenized text through the text encoder. Produces the shared embedding.
+        :param image: The input image tensor.
+        :param text_encoding: The tokenized text encoding.
+        :return: Tuple of image embedding and text embedding
+        """
+
         # extract feature representation of each modality
         image_embedding = self.image_encoder(image)
         text_embedding  = self.text_encoder(text_encoding)
@@ -30,17 +44,32 @@ class ClipModel(nn.Module):
         return image_embedding, text_embedding
 
     def get_text_embeddings(self, text: torch.Tensor) -> torch.Tensor:
+        """
+        Returns the embedding of the specified text.
+        :param text: The input text.
+        :return: Text embedding
+        """
+
         text_embedding = self.text_encoder(text)
         text_embedding = F.normalize(self.text_projection(text_embedding), p=2, dim=1)
         return text_embedding
 
     def get_image_embeddings(self, image: torch.Tensor) -> torch.Tensor:
+        """
+        Returns the embedding of the specified image.
+        :param image: The input image.
+        :return: Image embedding
+        """
+
         image_embedding = self.image_encoder(image)
         image_embedding = F.normalize(self.image_projection(image_embedding), p=2, dim=1)
         return image_embedding
 
 class ClipLoss(nn.Module):
     def __init__(self) -> None:
+        """
+        Defines the loss function fo the clip model based on the paper 'Learning transferable visual models from natural language supervision.'
+        """
         super(ClipLoss, self).__init__()
 
         self.t = nn.Parameter(torch.log(torch.tensor(1 / 0.07)))  # Learnable log temperature

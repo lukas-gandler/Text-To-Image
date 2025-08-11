@@ -6,6 +6,16 @@ import matplotlib.pyplot as plt
 
 
 def plot_image_batch(images: torch.Tensor, n_row:int=8, padding:int=2, normalize:bool=True, cmap:str='gray') -> None:
+    """
+    Plotting a batch of images.
+    :param images: The batch of images.
+    :param n_row: The number of rows for the grid.
+    :param padding: The padding of the grid.
+    :param normalize: Normalize the images if set to True.
+    :param cmap: The colormap to use.
+    :return:
+    """
+
     grid = make_grid(images, nrow=n_row, padding=padding, normalize=normalize)
     np_images = grid.permute(1, 2, 0).cpu().numpy()
 
@@ -21,7 +31,16 @@ def plot_image_batch(images: torch.Tensor, n_row:int=8, padding:int=2, normalize
     plt.show()
 
 @torch.no_grad()
-def plot_class_embedding_directions(classes, clip_model, description_encoder, device):
+def plot_class_embedding_directions(classes, clip_model, description_encoder, device) -> None:
+    """
+    Plots the learned embedding space of the clip model (only works with 2D embedding space).
+    :param classes: List of classes.
+    :param clip_model: The CLIP model to use.
+    :param description_encoder: The description encoder to use.
+    :param device: The device to use.
+    :return:
+    """
+
     # Tokenize and pad class descriptions, move to device
     classes_tokenized = torch.stack([description_encoder(c) for c in classes]).to(device)
 
@@ -49,7 +68,17 @@ def plot_class_embedding_directions(classes, clip_model, description_encoder, de
     plt.show()
 
 @torch.no_grad()
-def show_clip_image_classification(images, classes, clip_model, description_encoder, device):
+def show_clip_image_classification(images, classes, clip_model, description_encoder, device) -> None:
+    """
+    Plots the class prediction based on the clip embeddings.
+    :param images: The batch of images.
+    :param classes: List of classes.
+    :param clip_model: The CLIP model to use.
+    :param description_encoder: The description encoder to use.
+    :param device: The device to use.
+    :return:
+    """
+
     # Tokenize and pad class descriptions, then move to device
     classes_tokenized = torch.stack([description_encoder(c) for c in classes]).to(device)
 

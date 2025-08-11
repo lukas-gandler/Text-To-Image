@@ -5,6 +5,13 @@ import torch.nn as nn
 
 class LSTMTextEncoder(nn.Module):
     def __init__(self, alphabet_size:int, embedding_dim:int=8, output_dim:int=32) -> None:
+        """
+        A simple LSTM text encoder.
+        :param alphabet_size: The size of the alphabet.
+        :param embedding_dim: The dimension of the embedding.
+        :param output_dim: The size of the output embedding.
+        """
+
         super(LSTMTextEncoder, self).__init__()
 
         self.output_dim = output_dim

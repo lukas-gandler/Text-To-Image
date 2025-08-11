@@ -1,2 +1,2 @@
-from .MNIST_dataset import load_MNIST
-from .CharacterEncoder import CharacterEncoder
+from .mnist_dataset import load_mnist
+from .character_tokenizer import CharacterTokenizer

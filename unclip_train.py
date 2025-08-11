@@ -1,50 +1,41 @@
+import argparse
+
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from models import ClipModel, SimpleImageEncoder, LSTMTextEncoder
 from utils import *
-from dataloading import load_MNIST, CharacterEncoder
+from dataloading import load_mnist, CharacterTokenizer
 
-from models.diffusion_models import *
+from models.diffusion_model import *
 
 SEED = 42
 
-CLIP_MODEL_PATH = 'mnist_clip.pth'
-DIFFUSION_MODEL_PATH = 'mnist_diff.pth'
-
-TIME_EMBEDDING_DIM = 128
-CLIP_EMBEDDING_DIM = 2
-
-def main() -> None:
+def main(args: argparse.Namespace) -> None:
     set_seed(SEED)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device: {device}')
 
-    description_encoder = CharacterEncoder('abcdefghijklmnopqrstuvwxyz1234567890 .!?')
-    train_loader, _ = load_MNIST(encoder=description_encoder, batch_size=128, num_workers=4)
+    description_encoder = CharacterTokenizer('abcdefghijklmnopqrstuvwxyz1234567890 .!?', args.encoder_target_length)
+    train_loader, _ = load_mnist(description_encoder, args.batch_size, args.num_workers)
+    cnn_in_channels = 1
 
     # Load clip model
-    clip_model = ClipModel(image_encoder=SimpleImageEncoder(), text_encoder=LSTMTextEncoder(description_encoder.alphabet_size), clip_embedding_dim=CLIP_EMBEDDING_DIM)
-    clip_model = load_model(clip_model, CLIP_MODEL_PATH).to(device)
-    clip_model.eval()
+    cnn = SimpleImageEncoder(cnn_in_channels, args.cnn_output_dim)
+    lstm = LSTMTextEncoder(description_encoder.alphabet_size, args.lstm_embedding_dim, args.lstm_output_dim)
+    clip_model = ClipModel(cnn, lstm, args.clip_embedding_dim)
+    clip_model = load_model(clip_model, args.clip_model_path).to(device).eval()
 
-    unet = ConditionalUNet(in_channels=1, time_embedding_dim=TIME_EMBEDDING_DIM, clip_embedding_dim=CLIP_EMBEDDING_DIM).to(device)
-    ddpm = DiffusionModel(network=unet, max_steps=1000, min_beta=0.0001, max_beta=0.02).to(device)
+    unet = ConditionalUNet(cnn_in_channels, args.time_embedding_dim, args.clip_embedding_dim).to(device)
+    ddpm = DiffusionModel(unet, args.ddpm_max_steps, args.ddpm_min_beta, args.ddpm_max_beta).to(device)
 
-    num_epochs = 10
-    optimizer = torch.optim.AdamW(ddpm.parameters(), lr=1e-3)
+    num_epochs = args.epochs
+    optimizer = torch.optim.AdamW(ddpm.parameters(), lr=args.lr)
     criterion = nn.MSELoss()
 
-    ddpm = train(ddpm_model=ddpm, clip_model=clip_model, num_epochs=num_epochs, optimizer=optimizer, criterion=criterion, train_loader=train_loader, device=device)
-    save_model(ddpm, DIFFUSION_MODEL_PATH)
-
-    num_samples = 64
-    test_prompt = torch.stack([description_encoder('six')]*num_samples).to(device)
-    test_prompt_clip_embedding = clip_model.get_text_embeddings(test_prompt)
-
-    generation = ddpm.sample_new_image(num_samples=num_samples, clip_embedding=test_prompt_clip_embedding)
-    plot_image_batch(generation)
+    ddpm = train(ddpm, clip_model, num_epochs, optimizer, criterion, train_loader, device)
+    save_model(ddpm, args.save_path)
 
 def train(ddpm_model: nn.Module, clip_model: nn.Module, num_epochs:int, optimizer: torch.optim.Optimizer, criterion: nn.Module, train_loader: DataLoader, device: torch.device) -> nn.Module:
     ddpm_model.train()
@@ -80,7 +71,29 @@ def train(ddpm_model: nn.Module, clip_model: nn.Module, num_epochs:int, optimize
 
     return ddpm_model
 
-
-
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+
+    # Training settings
+    parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--batch_size', type=int, default=128)
+    parser.add_argument('--lr', type=float, default=3e-4)
+    parser.add_argument('--num_workers', type=int, default=4)
+
+    # Model settings
+    parser.add_argument('--cnn_output_dim', type=int, default=64)
+    parser.add_argument('--lstm_embedding_dim', type=int, default=8)
+    parser.add_argument('--lstm_output_dim', type=int, default=32)
+    parser.add_argument('--clip_embedding_dim', type=int, default=2)
+    parser.add_argument('--time_embedding_dim', type=int, default=128)
+    parser.add_argument('--ddpm_max_steps', type=int, default=1000)
+    parser.add_argument('--ddpm_min_beta', type=float, default=0.0001)
+    parser.add_argument('--ddpm_max_beta', type=float, default=0.02)
+
+    # General settings
+    parser.add_argument('--encoder_target_length', type=int, default=10)
+    parser.add_argument('--save_path', type=str, default='mnist_ddpm.pth')
+    parser.add_argument('--clip_model_path', type=str, default='mnist_clip.pth')
+
+    command_line_args = parser.parse_args()
+    main(command_line_args)

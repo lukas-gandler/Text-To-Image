@@ -3,3 +3,4 @@ torchvision>=0.22.1
 numpy>=2.3.2
 tqdm>=4.67.1
 matplotlib>=3.10.5
+jupyter>=1.1.1

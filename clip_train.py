@@ -1,40 +1,36 @@
+import argparse
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-import matplotlib.pyplot as plt
-
 from utils import set_seed, save_model
-from dataloading import load_MNIST
-from dataloading.CharacterEncoder import CharacterEncoder
-
-from models.clip import ClipModel, ClipLoss
-from models.image_encoders import SimpleImageEncoder
-from models.text_encoder import LSTMTextEncoder
+from dataloading import load_mnist, CharacterTokenizer
+from models import ClipModel, ClipLoss, SimpleImageEncoder, LSTMTextEncoder
 
 SEED = 42
-SAVE_PATH = 'mnist_clip.pth'
 
-def main() -> None:
+def main(args: argparse.Namespace) -> None:
     set_seed(SEED)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f'Using device: {device}')
 
-    description_encoder = CharacterEncoder('abcdefghijklmnopqrstuvwxyz1234567890 .!?')
-    train_loader, validation_loader = load_MNIST(encoder=description_encoder, batch_size=128, num_workers=4)
+    description_encoder = CharacterTokenizer('abcdefghijklmnopqrstuvwxyz1234567890 .!?', args.encoder_target_length)
+    train_loader, validation_loader = load_mnist(description_encoder, args.batch_size, args.num_workers)
+    cnn_in_channels = 1
 
-    cnn = SimpleImageEncoder()
-    lstm = LSTMTextEncoder(alphabet_size=description_encoder.alphabet_size)
-    clip_model = ClipModel(image_encoder=cnn, text_encoder=lstm, clip_embedding_dim=2).to(device)
+    cnn = SimpleImageEncoder(cnn_in_channels, args.cnn_output_dim)
+    lstm = LSTMTextEncoder(description_encoder.alphabet_size, args.lstm_embedding_dim, args.lstm_output_dim)
+    clip_model = ClipModel(cnn, lstm, args.clip_embedding_dim).to(device)
 
-    epochs = 5
+    epochs = args.epochs
     clip_loss = ClipLoss().to(device)
-    optimizer = torch.optim.AdamW(list(clip_model.parameters()) + list(clip_loss.parameters()), lr=3e-4)
+    optimizer = torch.optim.AdamW(list(clip_model.parameters()) + list(clip_loss.parameters()), lr=args.lr)
 
-    train(clip_model=clip_model, num_epochs=epochs, optimizer=optimizer, clip_loss=clip_loss, train_loader=train_loader, validation_loader=validation_loader, device=device)
-    save_model(clip_model, path=SAVE_PATH)
+    train(clip_model, epochs, optimizer, clip_loss, train_loader, validation_loader, device)
+    save_model(clip_model, args.save_path)
 
 
 def train(clip_model:nn.Module, num_epochs:int, optimizer:torch.optim.Optimizer, clip_loss: nn.Module,
@@ -99,4 +95,23 @@ def validation_loop(clip_model: nn.Module, clip_loss:nn.Module, validation_loade
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+
+    # Training settings
+    parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--batch_size', type=int, default=128)
+    parser.add_argument('--lr', type=float, default=3e-4)
+    parser.add_argument('--num_workers', type=int, default=4)
+
+    # Model settings
+    parser.add_argument('--cnn_output_dim', type=int, default=64)
+    parser.add_argument('--lstm_embedding_dim', type=int, default=8)
+    parser.add_argument('--lstm_output_dim', type=int, default=32)
+    parser.add_argument('--clip_embedding_dim', type=int, default=2)
+
+    # General settings
+    parser.add_argument('--encoder_target_length', type=int, default=10)
+    parser.add_argument('--save_path', type=str, default='mnist_clip.pth')
+
+    command_line_args = parser.parse_args()
+    main(command_line_args)
